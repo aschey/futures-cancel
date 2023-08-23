@@ -8,11 +8,12 @@ version = "0.1.0"
 [dependencies]
 futures = "0.3"
 pin-project-lite = "0.2"
-tokio-util = {version = "0.7", optional = true}
+tokio = { version = "1", features = ["time"] }
+tokio-util = { version = "0.7", optional = true }
 
 [dev-dependencies]
-tokio = {version = "1.27.0", features = ["rt-multi-thread", "macros", "time"]}
-tokio-util = "0.7.7"
+tokio = { version = "1.32.0", features = ["rt-multi-thread", "macros", "time"] }
+tokio-util = "0.7.8"
 
 [features]
 cancellation-token = ["tokio-util"]
@@ -20,4 +21,9 @@ default = ["cancellation-token"]
 
 [[example]]
 name = "cancellation_token"
+required-features = ["cancellation-token"]
+
+
+[[example]]
+name = "cancellation_token_with_timeout"
 required-features = ["cancellation-token"]
