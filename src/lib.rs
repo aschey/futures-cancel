@@ -22,13 +22,14 @@ impl Error for CancelledByShutdown {}
 
 pin_project! {
     #[must_use = "futures do nothing unless polled"]
-    pub struct CancelOnShutdownFuture< F: Future, C: Future<Output=()>>{
+    pub struct CancelOnShutdownFuture<F: Future, C: Future<Output=()>>{
         #[pin]
         future: F,
         #[pin]
         cancellation: C,
         #[pin]
         timeout: Option<tokio::time::Sleep>,
+        timeout_duration: Duration,
         start_timeout: bool
     }
 }
@@ -37,7 +38,6 @@ impl<F: Future, C: Future<Output = ()>> Future for CancelOnShutdownFuture<F, C> 
     type Output = Result<F::Output, CancelledByShutdown>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let has_timeout = self.timeout.is_some();
         let mut this = self.project();
 
         if *this.start_timeout {
@@ -49,13 +49,16 @@ impl<F: Future, C: Future<Output = ()>> Future for CancelOnShutdownFuture<F, C> 
                         Poll::Pending => Poll::Pending,
                     },
                 };
+            } else {
+                return Poll::Ready(Err(CancelledByShutdown));
             }
         }
 
         let mut should_wake = false;
         match this.cancellation.as_mut().poll(cx) {
             Poll::Ready(()) => {
-                if has_timeout {
+                if let Some(timeout) = this.timeout.as_pin_mut() {
+                    timeout.reset(tokio::time::Instant::now() + *this.timeout_duration);
                     *this.start_timeout = true;
                     should_wake = true;
                 } else {
@@ -116,6 +119,7 @@ impl<F: Future> FutureExt for F {
             future: self,
             cancellation,
             timeout: None,
+            timeout_duration: Duration::default(),
             start_timeout: false,
         }
     }
@@ -129,6 +133,7 @@ impl<F: Future> FutureExt for F {
             future: self,
             cancellation,
             timeout: Some(tokio::time::sleep(timeout)),
+            timeout_duration: timeout,
             start_timeout: false,
         }
     }
@@ -143,6 +148,7 @@ impl<F: Future> FutureExt for F {
             future: self,
             cancellation,
             timeout: None,
+            timeout_duration: Duration::default(),
             start_timeout: false,
         }
     }
@@ -158,6 +164,7 @@ impl<F: Future> FutureExt for F {
             future: self,
             cancellation,
             timeout: Some(tokio::time::sleep(timeout)),
+            timeout_duration: timeout,
             start_timeout: false,
         }
     }
