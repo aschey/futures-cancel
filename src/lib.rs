@@ -91,21 +91,21 @@ pub trait FutureExt {
     fn cancel_with_timeout<F: Future<Output = ()>>(
         self,
         cancellation_token: F,
-        timout: Duration,
+        timeout: Duration,
     ) -> CancelOnShutdownFuture<Self::Future, F>;
 
     #[cfg(feature = "cancellation-token")]
     fn cancel_on_shutdown(
         self,
         cancellation_token: &tokio_util::sync::CancellationToken,
-    ) -> CancelOnShutdownFuture<Self::Future, tokio_util::sync::WaitForCancellationFuture>;
+    ) -> CancelOnShutdownFuture<Self::Future, tokio_util::sync::WaitForCancellationFuture<'_>>;
 
     #[cfg(feature = "cancellation-token")]
     fn cancel_on_shutdown_with_timeout(
         self,
         cancellation_token: &tokio_util::sync::CancellationToken,
-        timout: Duration,
-    ) -> CancelOnShutdownFuture<Self::Future, tokio_util::sync::WaitForCancellationFuture>;
+        timeout: Duration,
+    ) -> CancelOnShutdownFuture<Self::Future, tokio_util::sync::WaitForCancellationFuture<'_>>;
 }
 
 impl<F: Future> FutureExt for F {
@@ -142,7 +142,7 @@ impl<F: Future> FutureExt for F {
     fn cancel_on_shutdown(
         self,
         cancellation_token: &tokio_util::sync::CancellationToken,
-    ) -> CancelOnShutdownFuture<Self::Future, tokio_util::sync::WaitForCancellationFuture> {
+    ) -> CancelOnShutdownFuture<Self::Future, tokio_util::sync::WaitForCancellationFuture<'_>> {
         let cancellation = cancellation_token.cancelled();
         CancelOnShutdownFuture {
             future: self,
@@ -158,7 +158,7 @@ impl<F: Future> FutureExt for F {
         self,
         cancellation_token: &tokio_util::sync::CancellationToken,
         timeout: Duration,
-    ) -> CancelOnShutdownFuture<Self::Future, tokio_util::sync::WaitForCancellationFuture> {
+    ) -> CancelOnShutdownFuture<Self::Future, tokio_util::sync::WaitForCancellationFuture<'_>> {
         let cancellation = cancellation_token.cancelled();
         CancelOnShutdownFuture {
             future: self,
